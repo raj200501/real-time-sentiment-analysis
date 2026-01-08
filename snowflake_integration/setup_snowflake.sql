@@ -1,22 +1,14 @@
--- setup_snowflake.sql
+-- SQLite schema used by the local sentiment analysis pipeline.
 
--- Create database
-CREATE DATABASE IF NOT EXISTS sentiment_analysis_db;
-
--- Use the created database
-USE DATABASE sentiment_analysis_db;
-
--- Create schema
-CREATE SCHEMA IF NOT EXISTS public;
-
--- Use the created schema
-USE SCHEMA public;
-
--- Create table to store sentiment data
-CREATE TABLE IF NOT EXISTS sentiment_data (
-    id INTEGER AUTOINCREMENT,
-    text STRING,
-    created_at TIMESTAMP,
-    sentiment STRING,
-    source STRING
+CREATE TABLE IF NOT EXISTS sentiment_records (
+    record_id TEXT PRIMARY KEY,
+    source TEXT NOT NULL,
+    text TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    sentiment TEXT NOT NULL,
+    polarity REAL NOT NULL,
+    raw_payload TEXT NOT NULL
 );
+
+CREATE INDEX IF NOT EXISTS idx_sentiment_source ON sentiment_records(source);
+CREATE INDEX IF NOT EXISTS idx_sentiment_label ON sentiment_records(sentiment);

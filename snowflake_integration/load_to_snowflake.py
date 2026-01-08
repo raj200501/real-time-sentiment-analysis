@@ -1,34 +1,26 @@
-import json
-from kafka import KafkaConsumer
-import snowflake.connector
+"""Compatibility wrapper for data loading.
 
-# Kafka consumer configuration
-consumer = KafkaConsumer(
-    'sentiment_topic',
-    bootstrap_servers='localhost:9092',
-    value_deserializer=lambda v: json.loads(v.decode('utf-8'))
-)
+Loads the processed sentiment data into a local SQLite database.
+"""
+from __future__ import annotations
 
-# Snowflake connection configuration
-conn = snowflake.connector.connect(
-    user='your_username',
-    password='your_password',
-    account='your_account',
-    warehouse='your_warehouse',
-    database='sentiment_analysis_db',
-    schema='public'
-)
+import sys
+from pathlib import Path
 
-cur = conn.cursor()
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.append(str(ROOT / "src"))
 
-# Consuming messages and loading data into Snowflake
-for message in consumer:
-    data = message.value
-    cur.execute(
-        f"""
-        INSERT INTO sentiment_data (text, created_at, sentiment, source)
-        VALUES ('{data.get('text', '')}', '{data.get('created_at')}', '{data.get('sentiment')}', 'Twitter' if 'text' in data else 'News')
-        """
-    )
-    conn.commit()
-    print("Data inserted into Snowflake")
+from sentiment_platform.config import load_config  # noqa: E402
+from sentiment_platform.pipeline import Pipeline, format_summary  # noqa: E402
+
+
+def main() -> int:
+    config = load_config()
+    pipeline = Pipeline(config)
+    summary = pipeline.run()
+    print(format_summary(summary))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

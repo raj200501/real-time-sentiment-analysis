@@ -1,31 +1,30 @@
-import requests
-import json
-import time
-from kafka import KafkaProducer
+"""Compatibility wrapper for news ingestion.
 
-# Kafka producer configuration
-producer = KafkaProducer(
-    bootstrap_servers='localhost:9092',
-    value_serializer=lambda v: json.dumps(v).encode('utf-8')
-)
+Reads local sample data and prints a summary of ingested records.
+"""
+from __future__ import annotations
 
-# Function to fetch news articles
-def fetch_news():
-    url = ('http://newsapi.org/v2/everything?'
-           'q=Snowflake&'
-           'apiKey=your_newsapi_key')
-    response = requests.get(url)
-    return response.json()
+import sys
+from pathlib import Path
 
-# Sending news articles to Kafka topic
-while True:
-    news_data = fetch_news()
-    for article in news_data['articles']:
-        news = {
-            'title': article['title'],
-            'description': article['description'],
-            'published_at': article['publishedAt']
-        }
-        print(f"Sending news: {news}")
-        producer.send('news_topic', value=news)
-    time.sleep(300)  # Fetch news every 5 minutes
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.append(str(ROOT / "src"))
+
+from sentiment_platform.config import load_config  # noqa: E402
+from sentiment_platform.ingest import load_records  # noqa: E402
+
+
+def main() -> int:
+    config = load_config()
+    records = load_records(
+        Path(config.news_source_path),
+        "news",
+        "description",
+        "published_at",
+    )
+    print(f"Loaded {len(records)} news records from {config.news_source_path}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
