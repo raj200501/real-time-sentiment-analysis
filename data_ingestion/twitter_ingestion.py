@@ -1,43 +1,30 @@
-import tweepy
-import json
-import time
-from kafka import KafkaProducer
+"""Compatibility wrapper for twitter ingestion.
 
-# Twitter API credentials
-API_KEY = 'your_api_key'
-API_SECRET_KEY = 'your_api_secret_key'
-ACCESS_TOKEN = 'your_access_token'
-ACCESS_TOKEN_SECRET = 'your_access_token_secret'
+Reads local sample data and prints a summary of ingested records.
+"""
+from __future__ import annotations
 
-# Kafka producer configuration
-producer = KafkaProducer(
-    bootstrap_servers='localhost:9092',
-    value_serializer=lambda v: json.dumps(v).encode('utf-8')
-)
+import sys
+from pathlib import Path
 
-# Tweepy authentication
-auth = tweepy.OAuthHandler(API_KEY, API_SECRET_KEY)
-auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
-api = tweepy.API(auth)
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.append(str(ROOT / "src"))
 
-# StreamListener class to get live tweets
-class MyStreamListener(tweepy.StreamListener):
-    def on_status(self, status):
-        tweet = {
-            'text': status.text,
-            'created_at': status.created_at.strftime('%Y-%m-%d %H:%M:%S')
-        }
-        print(f"Sending tweet: {tweet}")
-        producer.send('twitter_topic', value=tweet)
+from sentiment_platform.config import load_config  # noqa: E402
+from sentiment_platform.ingest import load_records  # noqa: E402
 
-    def on_error(self, status_code):
-        if status_code == 420:
-            return False
 
-# Start streaming tweets
-myStreamListener = MyStreamListener()
-myStream = tweepy.Stream(auth=api.auth, listener=myStreamListener)
-myStream.filter(track=['Snowflake'])
+def main() -> int:
+    config = load_config()
+    records = load_records(
+        Path(config.twitter_source_path),
+        "twitter",
+        "text",
+        "created_at",
+    )
+    print(f"Loaded {len(records)} twitter records from {config.twitter_source_path}")
+    return 0
 
-# Add a sleep to prevent too many requests in a short period
-time.sleep(60)
+
+if __name__ == "__main__":
+    raise SystemExit(main())

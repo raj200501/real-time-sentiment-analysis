@@ -1,16 +1,19 @@
--- analytics_queries.sql
+-- analytics_queries.sql (SQLite)
 
--- Use the database and schema
-USE DATABASE sentiment_analysis_db;
-USE SCHEMA public;
-
--- Query to get the count of positive and negative sentiments
+-- Query to get the count of positive/negative/neutral sentiments
 SELECT sentiment, COUNT(*) AS count
-FROM sentiment_data
-GROUP BY sentiment;
+FROM sentiment_records
+GROUP BY sentiment
+ORDER BY sentiment;
 
 -- Query to get the sentiment trend over time
-SELECT created_at::date AS date, sentiment, COUNT(*) AS count
-FROM sentiment_data
+SELECT date(created_at) AS date, sentiment, COUNT(*) AS count
+FROM sentiment_records
 GROUP BY date, sentiment
-ORDER BY date;
+ORDER BY date, sentiment;
+
+-- Query to get the latest five records
+SELECT record_id, source, sentiment, created_at
+FROM sentiment_records
+ORDER BY datetime(created_at) DESC
+LIMIT 5;
